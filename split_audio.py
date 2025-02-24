@@ -30,14 +30,15 @@ def get_device_info():
 
 
 def sanitize_filename(filename):
-    # Normalize Unicode characters
-    normalized = unicodedata.normalize('NFKC', filename)
+     # Remove diacritics and normalize Unicode characters
+    normalized = unicodedata.normalize('NFKD', filename)
+    sanitized = ''.join(c for c in normalized if not unicodedata.combining(c))
 
     # Regular Expression to match invalid characters
     invalid_chars_pattern = r'[<>:"/\\|?*]'
 
     # Replace invalid characters with an underscore
-    return re.sub(invalid_chars_pattern, '_', normalized)
+     return re.sub(invalid_chars_pattern, '_', sanitized)
 
 
 def get_output_filename():
@@ -110,13 +111,8 @@ def run_whisperx(audio_files, output_dir, settings, device, compute_type):
     
     if settings["diarize"]:
         base_cmd.extend(["--diarize", "--hf_token", settings["HF_token"]])
-
-    # Capture output and error to ensure UTF-8 encoding
-    result = subprocess.run(base_cmd, capture_output=True, text=True, encoding="utf-8")
-    print(result.stdout)
-    if result.stderr:
-        print(f"Error: {result.stderr}")
-
+         subprocess.run(base_cmd)
+  
 
 def process_audio_files(input_folder, settings):
     output_dir = os.path.join(input_folder, "output")
@@ -143,11 +139,7 @@ def process_audio_files(input_folder, settings):
         run_whisperx(audio_file_path, output_dir, settings, device, compute_type)
         srt_file = os.path.join(output_dir, f"{os.path.splitext(audio_file)[0]}.srt")
 
-        print(f"Checking for .srt file at: {srt_file}")
-        if not os.path.exists(srt_file):
-            print(f"Error: .srt file not found at {srt_file}")
-            continue
-        
+       
         # Set the output directory for speaker segments to be a subdirectory named after the .wav file
         speaker_segments_dir = os.path.join(output_dir, os.path.splitext(audio_file)[0])
         os.makedirs(speaker_segments_dir, exist_ok=True)
